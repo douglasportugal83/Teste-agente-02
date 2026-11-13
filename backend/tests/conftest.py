@@ -4,6 +4,7 @@ import os
 from collections.abc import Iterator
 
 os.environ.setdefault("ENVIRONMENT", "test")
+os.environ.setdefault("MARKET_WORKER_ENABLED", "false")
 os.environ.setdefault("JWT_SECRET", "test-secret-with-at-least-32-characters!!")
 
 import pytest

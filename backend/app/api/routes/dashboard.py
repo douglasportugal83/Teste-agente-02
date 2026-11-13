@@ -99,6 +99,7 @@ def overview(db: DbSession, user: DashboardUser) -> DashboardOverview:
     for name, category in db.execute(
         select(Symbol.canonical_name, Symbol.category)
         .where(Symbol.is_monitored)
+        .distinct()
         .order_by(Symbol.canonical_name)
     ):
         by_category[category].append(name)

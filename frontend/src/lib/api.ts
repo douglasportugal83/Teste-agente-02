@@ -49,7 +49,10 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  if (init.body) headers.set("Content-Type", "application/json");
+  // Para FormData (upload), o navegador define o Content-Type com o boundary correto.
+  if (init.body && !(init.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
 
   let response: Response;
   try {
@@ -155,4 +158,93 @@ export type AuditLog = {
   details: Record<string, unknown>;
   ip_address: string | null;
   created_at: string;
+};
+
+export type Timeframe = "M1" | "M5" | "M15" | "M30" | "H1" | "H4" | "D1" | "W1";
+export const TIMEFRAMES: Timeframe[] = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1"];
+
+export type MarketSymbol = {
+  id: string;
+  name: string;
+  canonical_name: string;
+  description: string | null;
+  category: AssetCategory;
+  digits: number;
+  is_monitored: boolean;
+  data_source_id: string;
+};
+
+export type Candle = { t: number; o: number; h: number; l: number; c: number; v: number };
+
+export type CandleSeries = {
+  symbol_id: string;
+  symbol: string;
+  canonical_name: string;
+  timeframe: Timeframe;
+  digits: number;
+  source_kind: string;
+  is_synthetic: boolean;
+  notice: string | null;
+  candles: Candle[];
+};
+
+export type Quote = {
+  symbol_id: string;
+  name: string;
+  canonical_name: string;
+  category: AssetCategory;
+  digits: number;
+  source_kind: string;
+  is_synthetic: boolean;
+  price: number | null;
+  price_ts: string | null;
+  change_pct: number | null;
+  is_stale: boolean;
+};
+
+export type QualityIssue = {
+  code: string;
+  severity: "info" | "warning" | "critical";
+  message: string;
+  count: number;
+  examples: string[];
+};
+
+export type QualityReport = {
+  symbol: string;
+  timeframe: Timeframe;
+  candles: number;
+  first_ts: string | null;
+  last_ts: string | null;
+  expected_candles: number;
+  completeness_pct: number;
+  is_stale: boolean;
+  last_candle_age_seconds: number | null;
+  score: number;
+  issues: QualityIssue[];
+};
+
+export type Coverage = {
+  symbol_id: string;
+  symbol: string;
+  source: string;
+  timeframe: Timeframe;
+  candles: number;
+  first_ts: string;
+  last_ts: string;
+};
+
+export type SyncReport = { series: number; candles: number; rejected: number; errors: string[] };
+
+export type ImportReport = {
+  symbol_id: string;
+  symbol: string;
+  timeframe: Timeframe;
+  rows_read: number;
+  rows_imported: number;
+  rows_rejected: number;
+  rejected_by_reason: Record<string, number>;
+  first_ts: string | null;
+  last_ts: string | null;
+  quality: QualityReport;
 };

@@ -11,10 +11,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import __version__
-from app.api.routes import admin, auth, dashboard, health, ws
+from app.api.routes import admin, auth, dashboard, health, market, ws
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import get_sessionmaker
+from app.market.worker import MarketWorker
 from app.schemas.core import DISCLAIMER
 from app.services.seed import seed_reference_data
 
@@ -35,7 +36,15 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     logger.info(
         "startup", extra={"environment": settings.environment, "mode": settings.trading_mode}
     )
-    yield
+    worker: MarketWorker | None = None
+    if settings.market_worker_enabled:
+        worker = MarketWorker(get_sessionmaker(), settings.market_worker_interval_seconds)
+        worker.start()
+    try:
+        yield
+    finally:
+        if worker is not None:
+            worker.stop()
 
 
 def create_app() -> FastAPI:
@@ -77,7 +86,7 @@ def create_app() -> FastAPI:
         )
         return response
 
-    for module in (health, auth, dashboard, admin, ws):
+    for module in (health, auth, dashboard, admin, market, ws):
         app.include_router(module.router)
     return app
 

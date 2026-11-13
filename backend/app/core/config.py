@@ -32,8 +32,29 @@ class Settings(BaseSettings):
     login_max_failures: int = 5
     login_failure_window_seconds: int = 900
 
+    # --- Dados de mercado ---
+    # Atualizador em segundo plano dos candles sintéticos (dentro do processo da API).
+    market_worker_enabled: bool = True
+    market_worker_interval_seconds: int = 20
+    import_max_bytes: int = 50 * 1024 * 1024
+    backfill_max_candles: int = 600_000
+
+    # --- Ponte MT5 (usadas somente por `python -m app.market.mt5_bridge`) ---
+    mt5_terminal_path: str | None = None
+    mt5_login: int | None = None
+    mt5_password: str | None = Field(default=None, repr=False)  # senha de INVESTIDOR
+    mt5_server: str | None = None
+    # Fuso do servidor da corretora (IANA). Muitas usam "Europe/Athens" (EET/EEST).
+    mt5_server_timezone: str = "UTC"
+
     default_simulation_balance: float = 100_000.0
     default_simulation_currency: str = "USD"
+
+    @field_validator("mt5_terminal_path", "mt5_login", "mt5_password", "mt5_server", mode="before")
+    @classmethod
+    def _blank_is_unset(cls, value: object) -> object:
+        # Linhas "VAR=" copiadas do .env.example significam "não configurado".
+        return None if isinstance(value, str) and not value.strip() else value
 
     @field_validator("database_url")
     @classmethod

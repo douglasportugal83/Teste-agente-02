@@ -1,10 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { EquityChart } from "@/components/EquityChart";
 import { Card, ErrorNote, PageHeader, Skeleton, StatusBadge } from "@/components/ui";
-import { api, type Overview } from "@/lib/api";
-import { CATEGORY_LABELS, dateTime, money, signedPercent } from "@/lib/format";
+import { api, type CategorySummary, type Overview, type Quote } from "@/lib/api";
+import {
+  CATEGORY_LABELS,
+  SOURCE_KIND_LABELS,
+  dateTime,
+  money,
+  price,
+  signedPercent,
+} from "@/lib/format";
 import { useApi } from "@/lib/useApi";
 
 function Metric({ label, value, tone = "" }: { label: string; value: string; tone?: string }) {
@@ -18,8 +26,86 @@ function Metric({ label, value, tone = "" }: { label: string; value: string; ton
 
 const SEVERITY_TONE = { info: "bg-info", warning: "bg-warn", critical: "bg-danger" };
 
+function MarketBoard({
+  quotes,
+  error,
+  categories,
+}: {
+  quotes: Quote[] | null;
+  error: string | null;
+  categories: CategorySummary[];
+}) {
+  if (!quotes) {
+    return error ? <ErrorNote message={error} /> : <Skeleton className="h-32 bg-raised/50" />;
+  }
+  const anySynthetic = quotes.some((q) => q.is_synthetic);
+  const anyStale = quotes.some((q) => q.price !== null && q.is_stale);
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {categories.map((group) => {
+          const rows = quotes.filter((q) => q.category === group.category);
+          return (
+            <div key={group.category} className="rounded-lg bg-raised/50 p-4">
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-sm font-medium">{CATEGORY_LABELS[group.category]}</h3>
+                <span className="text-xs text-muted">{rows.length}</span>
+              </div>
+              <table className="mt-3 w-full text-sm">
+                <tbody>
+                  {rows.map((quote) => {
+                    const change = quote.change_pct;
+                    const tone =
+                      change === null || change === 0
+                        ? "text-muted"
+                        : change > 0
+                          ? "text-accent"
+                          : "text-danger";
+                    return (
+                      <tr key={quote.symbol_id}>
+                        <th scope="row" className="py-1 text-left font-mono text-xs font-normal">
+                          {quote.name}
+                          {!quote.is_synthetic && (
+                            <span className="ml-1.5 text-muted">
+                              {SOURCE_KIND_LABELS[quote.source_kind] ?? quote.source_kind}
+                            </span>
+                          )}
+                        </th>
+                        <td className="py-1 text-right font-mono text-xs tabular-nums">
+                          {quote.price === null ? "sem dados" : price(quote.price, quote.digits)}
+                          {quote.price !== null && quote.is_stale && (
+                            <span className="ml-1 text-warn" title="Dado atrasado">
+                              ⚠
+                            </span>
+                          )}
+                        </td>
+                        <td className={`w-16 py-1 text-right font-mono text-xs tabular-nums ${tone}`}>
+                          {change === null ? "—" : signedPercent(change)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-4 text-xs text-muted">
+        Último preço fechado e variação contra o fechamento do dia anterior (UTC).
+        {anySynthetic && " Preços sem indicação de fonte são sintéticos — não são cotações reais."}
+        {anyStale && " ⚠ indica dado atrasado em relação ao horário atual."}{" "}
+        <Link href="/charts" className="text-accent underline">
+          Ver gráficos
+        </Link>
+      </p>
+    </>
+  );
+}
+
 export default function DashboardPage() {
-  const { data, error, loading, reload } = useApi<Overview>("/api/v1/dashboard/overview");
+  const { data, error, loading, reload } = useApi<Overview>("/api/v1/dashboard/overview", 30_000);
+  const quotes = useApi<Quote[]>("/api/v1/market/quotes", 30_000);
   const [actionError, setActionError] = useState<string | null>(null);
 
   async function markRead(id: string) {
@@ -161,30 +247,7 @@ export default function DashboardPage() {
             <span className="text-xs text-muted">{data.monitored_symbols} ativos monitorados</span>
           }
         >
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {data.market_by_category.map((group) => (
-              <div key={group.category} className="rounded-lg bg-raised/50 p-4">
-                <div className="flex items-baseline justify-between">
-                  <h3 className="text-sm font-medium">{CATEGORY_LABELS[group.category]}</h3>
-                  <span className="text-xs text-muted">{group.count}</span>
-                </div>
-                <ul className="mt-3 flex flex-wrap gap-1.5">
-                  {group.symbols.map((symbol) => (
-                    <li
-                      key={symbol}
-                      className="rounded-md border border-line px-2 py-1 font-mono text-xs"
-                    >
-                      {symbol}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-xs text-muted">
-            Catálogo inicial. Cotações e descoberta dinâmica de símbolos chegam com as fontes de
-            dados na Sprint 2.
-          </p>
+          <MarketBoard quotes={quotes.data} error={quotes.error} categories={data.market_by_category} />
         </Card>
       </div>
     </>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { DataSourcesAdmin } from "@/components/DataSourcesAdmin";
 import { Card, ErrorNote, PageHeader, Skeleton, StatusBadge } from "@/components/ui";
-import { api, type AuditLog, type DataSource, type Role, type User } from "@/lib/api";
+import { api, type AuditLog, type Role, type User } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { dateTime } from "@/lib/format";
 import { useApi } from "@/lib/useApi";
@@ -15,7 +16,6 @@ export default function AdminPage() {
   const allowed = can("admin:users");
   const users = useApi<User[]>(allowed ? "/api/v1/admin/users" : null);
   const roles = useApi<Role[]>(allowed ? "/api/v1/admin/roles" : null);
-  const sources = useApi<DataSource[]>(allowed ? "/api/v1/data-sources" : null);
   const logs = useApi<AuditLog[]>(allowed ? "/api/v1/admin/audit-logs?limit=30" : null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export default function AdminPage() {
     logs.reload();
   }
 
-  const loadError = users.error ?? roles.error ?? sources.error ?? logs.error;
+  const loadError = users.error ?? roles.error ?? logs.error;
 
   return (
     <>
@@ -110,25 +110,7 @@ export default function AdminPage() {
           )}
         </Card>
 
-        <Card title="Fontes de dados">
-          {!sources.data ? (
-            <Skeleton className="h-16" />
-          ) : (
-            <ul className="divide-y divide-line">
-              {sources.data.map((source) => (
-                <li key={source.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                  <div>
-                    <div className="text-sm">{source.name}</div>
-                    <div className="text-xs text-muted">
-                      Tipo {source.kind} · {source.read_only ? "somente leitura" : "leitura e escrita"}
-                    </div>
-                  </div>
-                  <StatusBadge status={source.status} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        <DataSourcesAdmin onChange={logs.reload} />
 
         <Card title="Auditoria (últimos 30 eventos)">
           {!logs.data ? (

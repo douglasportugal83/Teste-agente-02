@@ -84,3 +84,27 @@ def test_failure_limiter() -> None:
     assert not limiter.is_blocked("other")
     limiter.reset("k")
     assert not limiter.is_blocked("k")
+
+
+def test_blank_mt5_settings_mean_not_configured(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Copiar o .env.example sem preencher a seção MT5 não pode impedir a API de iniciar."""
+    for name in ("MT5_TERMINAL_PATH", "MT5_LOGIN", "MT5_PASSWORD", "MT5_SERVER"):
+        monkeypatch.setenv(name, "")
+    settings = Settings()
+    assert settings.mt5_login is None and settings.mt5_password is None
+    monkeypatch.setenv("MT5_LOGIN", "12345")
+    assert Settings().mt5_login == 12345
+
+
+def test_env_example_is_loadable_and_has_no_secrets() -> None:
+    from pathlib import Path
+
+    example = Path(__file__).resolve().parents[1] / ".env.example"
+    settings = Settings(_env_file=example)  # type: ignore[call-arg]
+    assert settings.trading_mode == "simulation"
+    values = dict(
+        line.split("=", 1)
+        for line in example.read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("#")
+    )
+    assert values["JWT_SECRET"] == "" and values["MT5_PASSWORD"] == ""

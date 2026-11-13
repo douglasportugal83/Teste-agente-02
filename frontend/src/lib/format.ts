@@ -48,3 +48,27 @@ export const RISK_RULE_LABELS: Record<string, string> = {
   max_drawdown_pct: "Drawdown máximo (%)",
   max_volatility_atr_pct: "Volatilidade máxima (ATR %)",
 };
+
+export function price(value: number, digits: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(value);
+}
+
+export const SOURCE_KIND_LABELS: Record<string, string> = {
+  synthetic: "sintético",
+  mt5: "MT5",
+  csv: "CSV",
+  parquet: "Parquet",
+};
+
+export const REJECTION_LABELS: Record<string, string> = {
+  valor_nao_numerico: "Valor não numérico",
+  preco_nao_positivo: "Preço zero ou negativo",
+  ohlc_inconsistente: "Máxima/mínima incoerente",
+  volume_negativo: "Volume negativo",
+  horario_desalinhado: "Horário fora da grade do timeframe",
+  candle_nao_fechado: "Candle ainda não fechado ou no futuro",
+  horario_duplicado: "Horário duplicado",
+};

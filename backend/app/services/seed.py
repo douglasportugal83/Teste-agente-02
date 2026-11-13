@@ -27,18 +27,17 @@ def seed_reference_data(db: Session) -> None:
             name=SYNTHETIC_SOURCE,
             kind=DataSourceKind.SYNTHETIC,
             status=DataSourceStatus.NOT_CONFIGURED,
-            config={"note": "Gerador de candles sintéticos previsto para a Sprint 2."},
+            config={"note": "Aguardando a primeira sincronização do gerador sintético."},
         )
         db.add(synthetic)
-    if MT5_SOURCE not in sources:
-        db.add(
-            DataSource(
-                name=MT5_SOURCE,
-                kind=DataSourceKind.MT5,
-                status=DataSourceStatus.NOT_CONFIGURED,
-                config={"note": "Conector de leitura previsto para a Sprint 2."},
-            )
+    mt5 = sources.get(MT5_SOURCE)
+    if mt5 is None:
+        mt5 = DataSource(
+            name=MT5_SOURCE, kind=DataSourceKind.MT5, status=DataSourceStatus.NOT_CONFIGURED
         )
+        db.add(mt5)
+    if mt5.status is DataSourceStatus.NOT_CONFIGURED:
+        mt5.config = {"note": "Aguardando a ponte MT5, que roda junto ao terminal (ver README)."}
     db.flush()
 
     known = set(db.scalars(select(Symbol.name).where(Symbol.data_source_id == synthetic.id)))
