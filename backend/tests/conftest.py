@@ -5,6 +5,7 @@ from collections.abc import Iterator
 
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("MARKET_WORKER_ENABLED", "false")
+os.environ.setdefault("TERMINAL_ENGINE_ENABLED", "false")
 os.environ.setdefault("JWT_SECRET", "test-secret-with-at-least-32-characters!!")
 
 import pytest
@@ -62,6 +63,7 @@ def client(
     # O lifespan e o WebSocket abrem sessões próprias: apontá-los para o banco de teste.
     monkeypatch.setattr("app.main.get_sessionmaker", lambda: session_factory)
     monkeypatch.setattr("app.api.routes.ws.get_sessionmaker", lambda: session_factory)
+    monkeypatch.setattr("app.api.routes.terminal.get_sessionmaker", lambda: session_factory)
     login_limiter.reset()
     app = create_app()
     app.dependency_overrides[get_db] = override_db

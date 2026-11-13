@@ -30,3 +30,24 @@ body {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* Faixas rolantes do terminal: o conteúdo é duplicado e desliza metade da própria largura. */
+.terminal-marquee-track {
+  animation: terminal-marquee linear infinite;
+}
+
+.terminal-marquee:hover .terminal-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes terminal-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-marquee-track {
+    animation: none;
+  }
+}

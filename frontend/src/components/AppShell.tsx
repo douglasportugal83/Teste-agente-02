@@ -12,6 +12,7 @@ const NAV = [
   { href: "/charts", label: "Gráficos" },
   { href: "/strategies", label: "Estratégias" },
   { href: "/simulator", label: "Robô Simulador" },
+  { href: "/terminal", label: "Terminal ao vivo" },
   { href: "/backtesting", label: "Backtesting" },
   { href: "/ai", label: "Inteligência Artificial" },
   { href: "/risk", label: "Gestão de Risco" },

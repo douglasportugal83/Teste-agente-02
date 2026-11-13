@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     import_max_bytes: int = 50 * 1024 * 1024
     backfill_max_candles: int = 600_000
 
+    # --- Terminal de mercados binários simulados (mundo sintético, em memória) ---
+    terminal_engine_enabled: bool = True
+    terminal_warmup_seconds: int = 3600
+    terminal_seed: int = 7
+
     # --- Ponte MT5 (usadas somente por `python -m app.market.mt5_bridge`) ---
     mt5_terminal_path: str | None = None
     mt5_login: int | None = None

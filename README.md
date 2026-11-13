@@ -6,7 +6,7 @@ Plataforma modular de análise multiativos, backtesting e **simulação** de est
 > contas financeiras. Resultados simulados ou históricos não garantem resultados futuros. Nada
 > aqui constitui recomendação de investimento.
 
-## Estado atual — Sprints 1 e 2 concluídas
+## Estado atual — Sprints 1 e 2 concluídas, mais o Terminal ao vivo
 
 | Entregue e validado | Ainda não existe (sprints seguintes) |
 |---|---|
@@ -17,6 +17,7 @@ Plataforma modular de análise multiativos, backtesting e **simulação** de est
 | Importação de históricos CSV e Parquet com validação | Indicadores e marcações no gráfico (Sprint 7) |
 | Avaliação de qualidade dos dados (lacunas, anomalias, atraso) | |
 | Painel: cotações, gráfico de candles, administração de fontes | |
+| **Terminal ao vivo**: robô simulado em mercados binários BTC Sobe/Desce | Persistência do terminal em banco (hoje é só memória) |
 
 **Conector MT5:** o código de leitura e a ponte estão escritos e testados contra um terminal
 *simulado*. **Não foram executados contra um terminal MetaTrader 5 real**, porque a biblioteca
@@ -25,6 +26,39 @@ oficial só existe para Windows. Trate-o como não validado até a primeira exec
 
 As telas Estratégias, Robô Simulador, Backtesting e IA existem na navegação, mas apenas descrevem
 o que virá — não exibem dados fictícios para parecer prontas.
+
+## Terminal ao vivo (mercados binários simulados)
+
+Tela em `/terminal` (link "Terminal ao vivo" no menu): um cockpit em tempo real de um robô
+"direcional tardio" operando mercados **BTC Sobe/Desce de 5 e 15 minutos**. Cada cota paga $1 se
+o lado acertar; o robô observa os últimos 4 minutos, compra o lado líder quando a oferta do livro
+está abaixo da probabilidade do modelo e carrega até a liquidação.
+
+**Tudo é sintético e vive em memória** (`backend/app/binary/`): o preço spot, o perp, o oráculo
+com atraso, o livro de ofertas, as execuções e o resultado. Nada fala com exchange, corretora ou
+blockchain, e o histórico se perde ao reiniciar a API (na partida, o motor simula a última hora
+em ritmo acelerado para a tela não nascer vazia).
+
+> **Leia antes de se animar com o lucro na tela.** O resultado positivo decorre de uma
+> *premissa* do mundo sintético: o livro segue o modelo com `book_lag_seconds` (2,5 s) de atraso.
+> Sem esse atraso a vantagem desaparece — há um teste que demonstra isso
+> (`test_no_edge_without_book_lag`). Também não há taxas, fila, latência de ordem nem impacto
+> além do tamanho do nível. Isto não é evidência de que a estratégia funcione em mercado real.
+
+| Painel | O que mostra |
+|---|---|
+| Carteira simulada | Resultado da sessão, acerto, risco de virada, compras por tempo até o fim |
+| BTC spot + livro | Candles de 1 min, referência do mercado, escada de ofertas do lado líder |
+| Latência e base dos feeds | Spot × perp × oráculo (em degraus), idade do oráculo |
+| Inspetor de mensagens | Mensagens do feed sintético (livro, oráculo, execuções) |
+| Casca do modelo | Toro 3D: anel = tempo do mercado, tubo = spot − referência, cor = P(sobe) |
+| Fita de execuções | Entradas, reforços, proteções e viradas, com resultado após liquidar |
+| Funil de resolução | Trajetória contra a faixa de ±1σ·√t / ±2σ·√t que se fecha até a liquidação |
+
+Modelo: `P(sobe) = Φ(ln(spot/ref) / (σ·√t))`, com σ estimada por média móvel exponencial dos
+retornos. API: `GET /api/v1/terminal/snapshot` e WebSocket `/ws/terminal` (permissão
+`dashboard:read`; o token vai na primeira mensagem). Configuração: `TERMINAL_ENGINE_ENABLED`,
+`TERMINAL_WARMUP_SECONDS`, `TERMINAL_SEED`; os parâmetros do robô ficam em `EngineConfig`.
 
 ## Arquitetura
 
