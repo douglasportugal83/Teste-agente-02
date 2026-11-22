@@ -22,3 +22,6 @@ node_modules/
 *.sqlite3
 *.db
 .DS_Store
+
+# Pacotes recebidos do webhook do TradingView
+integrations/tradingview-mathematical-indicator/packets/
