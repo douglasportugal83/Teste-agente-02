@@ -1,4 +1,4 @@
-// Teste ponta a ponta (navegador real) dos fluxos das Sprints 1 e 2.
+// Teste ponta a ponta (navegador real) dos fluxos das Sprints 1 e 2 e do Terminal ao vivo.
 // Pré-requisitos: API e frontend no ar, banco recém-migrado (sem usuários) e Playwright instalado.
 //   node e2e/smoke.mjs [url-do-frontend] [pasta-de-screenshots]
 import assert from "node:assert/strict";
@@ -161,6 +161,26 @@ try {
   await page.goto(`${BASE}/dashboard`);
   await page.getByText("13 ativos monitorados").waitFor();
   await shot("06-dashboard-mobile");
+
+  // Terminal ao vivo: o motor aquece, o fluxo chega pelo WebSocket e o relógio anda.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("link", { name: "Terminal ao vivo" }).click();
+  await page.waitForURL("**/terminal");
+  await page.getByRole("heading", { name: "Casca do modelo" }).waitFor({ timeout: 60_000 });
+  await page.getByText("Simulação ao vivo").waitFor();
+  const clockText = () => page.getByText(/^\d\d:\d\d:\d\d UTC$/).textContent();
+  const before = await clockText();
+  await page.waitForTimeout(1500);
+  assert.notEqual(await clockText(), before, "o relógio do terminal não avançou");
+  await page.getByRole("table").getByRole("row").nth(1).waitFor(); // a fita já tem execuções
+  await shot("07-terminal");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const terminalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  assert.ok(terminalOverflow <= 0, `rolagem horizontal de ${terminalOverflow}px no terminal`);
+  await page.getByRole("link", { name: "Voltar ao painel" }).click();
+  await page.waitForURL("**/dashboard");
 
   // Erros 4xx esperados (senha fraca, senha errada, rebaixamento) aparecem no console como falha de rede.
   const unexpected = problems.filter((p) => !/status of (401|409|422)/.test(p));
